@@ -25,10 +25,8 @@
   }
   h1 { text-align: center; color: #4a154b; margin-bottom: 10px; font-size: 24px; }
   .subtitle { text-align: center; color: #888; margin-bottom: 20px; font-size: 14px; }
-
   .screen { display: none; }
   .screen.active { display: block; }
-
   label { display: block; margin-bottom: 6px; color: #555; font-weight: 600; }
   input[type="number"] {
     width: 100%; padding: 12px; border: 2px solid #e0e0e0;
@@ -36,7 +34,6 @@
     transition: border-color 0.3s;
   }
   input[type="number"]:focus { border-color: #667eea; outline: none; }
-
   .btn {
     display: block; width: 100%; padding: 14px; border: none; border-radius: 12px;
     font-size: 18px; font-weight: 700; cursor: pointer; margin-top: 16px;
@@ -45,16 +42,13 @@
   .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
   .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
   .progress { text-align: center; color: #999; font-size: 14px; margin-bottom: 10px; }
   .timer { text-align: center; font-size: 20px; color: #667eea; font-weight: 700; margin-bottom: 15px; }
-
   .word-card {
     background: #f8f9ff; border: 2px solid #667eea; border-radius: 16px;
     padding: 30px 20px; text-align: center; margin-bottom: 20px;
   }
   .word-card .english { font-size: 36px; font-weight: 800; color: #4a154b; }
-
   .options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
   .option {
     padding: 14px; border: 2px solid #e0e0e0; border-radius: 12px;
@@ -65,15 +59,12 @@
   .option.correct { border-color: #4caf50; background: #e8f5e9; color: #2e7d32; }
   .option.wrong { border-color: #f44336; background: #ffebee; color: #c62828; }
   .option:disabled { cursor: default; }
-
   .feedback { text-align: center; font-size: 16px; font-weight: 700; margin: 10px 0; min-height: 24px; }
-
   .result-box {
     text-align: center; background: #f8f9ff; border-radius: 16px; padding: 20px; margin: 15px 0;
   }
   .result-box .big { font-size: 48px; font-weight: 800; color: #667eea; }
   .result-box .label { color: #777; font-size: 14px; }
-
   .leaderboard { margin-top: 15px; }
   .leaderboard h3 { text-align: center; color: #4a154b; margin-bottom: 10px; }
   .leaderboard table { width: 100%; border-collapse: collapse; }
@@ -81,7 +72,6 @@
   .leaderboard th { background: #f8f9ff; color: #667eea; font-size: 14px; }
   .leaderboard td { font-size: 15px; }
   .leaderboard .rank { font-weight: 700; color: #764ba2; }
-
   .error { color: #f44336; text-align: center; margin-top: 10px; font-size: 14px; }
   .loading { text-align: center; color: #999; padding: 20px; }
 </style>
@@ -94,13 +84,13 @@
   <div id="loginScreen" class="screen active">
     <label for="seatInput">請輸入你的班級座號</label>
     <input type="number" id="seatInput" min="1" max="50" placeholder="例如：15">
-    <button class="btn btn-primary" onclick="startGame()">開始遊戲</button>
+    <button class="btn btn-primary" id="startBtn">開始遊戲</button>
     <p class="error" id="loginError"></p>
   </div>
 
   <div id="gameScreen" class="screen">
     <div class="progress" id="progress"></div>
-    <div class="timer" id="timer">⏱ 00:00</div>
+    <div class="timer" id="timer">00:00</div>
     <div class="word-card">
       <span class="english" id="wordDisplay"></span>
     </div>
@@ -123,192 +113,212 @@
         <tbody id="leaderboardBody"></tbody>
       </table>
     </div>
-    <button class="btn btn-primary" onclick="location.reload()">再玩一次</button>
+    <button class="btn btn-primary" id="replayBtn">再玩一次</button>
     <p class="error" id="resultError"></p>
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
-const SUPABASE_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co';
-const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaHdqdWp4cXZvbnlqdW16Z2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTQwNTMsImV4cCI6MjEwMDc5MDA1M30._pOtF2T9FQIT0z0nFNUZq6kyGH9-2hPvORZgmujBOWc';
+(function() {
+  var API_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co/rest/v1/game_results';
+  var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaHdqdWp4cXZvbnlqdW16Z2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTQwNTMsImV4cCI6MjEwMDc5MDA1M30._pOtF2T9FQIT0z0nFNUZq6kyGH9-2hPvORZgmujBOWc';
 
-const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  var VOCAB = [
+    { en: 'apple', zh: '蘋果' }, { en: 'book', zh: '書' },
+    { en: 'cat', zh: '貓' }, { en: 'dog', zh: '狗' },
+    { en: 'elephant', zh: '大象' }, { en: 'flower', zh: '花' },
+    { en: 'garden', zh: '花園' }, { en: 'house', zh: '房子' },
+    { en: 'ice', zh: '冰' }, { en: 'jungle', zh: '叢林' },
+    { en: 'king', zh: '國王' }, { en: 'lion', zh: '獅子' },
+    { en: 'moon', zh: '月亮' }, { en: 'night', zh: '夜晚' },
+    { en: 'ocean', zh: '海洋' }, { en: 'pencil', zh: '鉛筆' },
+    { en: 'queen', zh: '皇后' }, { en: 'rain', zh: '雨' },
+    { en: 'sun', zh: '太陽' }, { en: 'tree', zh: '樹' },
+    { en: 'umbrella', zh: '雨傘' }, { en: 'water', zh: '水' },
+    { en: 'window', zh: '窗戶' }, { en: 'yellow', zh: '黃色' },
+    { en: 'zoo', zh: '動物園' }, { en: 'bird', zh: '鳥' },
+    { en: 'cloud', zh: '雲' }, { en: 'door', zh: '門' },
+    { en: 'egg', zh: '蛋' }, { en: 'fish', zh: '魚' },
+  ];
 
-const VOCAB = [
-  { en: 'apple', zh: '蘋果' }, { en: 'book', zh: '書' },
-  { en: 'cat', zh: '貓' }, { en: 'dog', zh: '狗' },
-  { en: 'elephant', zh: '大象' }, { en: 'flower', zh: '花' },
-  { en: 'garden', zh: '花園' }, { en: 'house', zh: '房子' },
-  { en: 'ice', zh: '冰' }, { en: 'jungle', zh: '叢林' },
-  { en: 'king', zh: '國王' }, { en: 'lion', zh: '獅子' },
-  { en: 'moon', zh: '月亮' }, { en: 'night', zh: '夜晚' },
-  { en: 'ocean', zh: '海洋' }, { en: 'pencil', zh: '鉛筆' },
-  { en: 'queen', zh: '皇后' }, { en: 'rain', zh: '雨' },
-  { en: 'sun', zh: '太陽' }, { en: 'tree', zh: '樹' },
-  { en: 'umbrella', zh: '雨傘' }, { en: 'water', zh: '水' },
-  { en: 'window', zh: '窗戶' }, { en: 'yellow', zh: '黃色' },
-  { en: 'zoo', zh: '動物園' }, { en: 'bird', zh: '鳥' },
-  { en: 'cloud', zh: '雲' }, { en: 'door', zh: '門' },
-  { en: 'egg', zh: '蛋' }, { en: 'fish', zh: '魚' },
-];
+  var TOTAL_Q = 10;
+  var seatNumber = 0;
+  var questions = [];
+  var currentQ = 0;
+  var score = 0;
+  var timerSeconds = 0;
+  var timerInterval = null;
 
-const TOTAL_Q = 10;
-let seatNumber = 0;
-let questions = [];
-let currentQ = 0;
-let score = 0;
-let timerSeconds = 0;
-let timerInterval = null;
-let startTime = 0;
+  var loginScreen = document.getElementById('loginScreen');
+  var gameScreen = document.getElementById('gameScreen');
+  var resultScreen = document.getElementById('resultScreen');
 
-function showScreen(id) {
-  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
-}
-
-function shuffle(arr) {
-  const a = [...arr];
-  for (let i = a.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [a[i], a[j]] = [a[j], a[i]];
-  }
-  return a;
-}
-
-function startGame() {
-  const input = document.getElementById('seatInput');
-  const val = parseInt(input.value);
-  if (!val || val < 1 || val > 50) {
-    document.getElementById('loginError').textContent = '請輸入 1~50 的座號';
-    return;
-  }
-  seatNumber = val;
-  document.getElementById('loginError').textContent = '';
-
-  questions = shuffle(VOCAB).slice(0, TOTAL_Q);
-  currentQ = 0;
-  score = 0;
-  timerSeconds = 0;
-  showScreen('gameScreen');
-
-  document.getElementById('timer').textContent = '00:00';
-  startTime = Date.now();
-  timerInterval = setInterval(() => {
-    timerSeconds++;
-    const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-    const s = String(timerSeconds % 60).padStart(2, '0');
-    document.getElementById('timer').textContent = m + ':' + s;
-  }, 1000);
-
-  renderQuestion();
-}
-
-function renderQuestion() {
-  if (currentQ >= TOTAL_Q) {
-    clearInterval(timerInterval);
-    endGame();
-    return;
-  }
-  document.getElementById('progress').textContent = 
-    '第 ' + (currentQ + 1) + ' 題 / 共 ' + TOTAL_Q + ' 題';
-  document.getElementById('feedback').textContent = '';
-
-  const q = questions[currentQ];
-  document.getElementById('wordDisplay').textContent = q.en;
-
-  const wrongOptions = shuffle(VOCAB.filter(v => v.zh !== q.zh)).slice(0, 3);
-  const options = shuffle([q, ...wrongOptions]);
-
-  const container = document.getElementById('optionsContainer');
-  container.innerHTML = '';
-  options.forEach(opt => {
-    const btn = document.createElement('button');
-    btn.className = 'option';
-    btn.textContent = opt.zh;
-    btn.onclick = () => checkAnswer(opt.zh === q.zh, btn.parentElement);
-    container.appendChild(btn);
-  });
-}
-
-function checkAnswer(correct, parent) {
-  const allBtns = parent.querySelectorAll('.option');
-  allBtns.forEach(b => b.disabled = true);
-
-  const correctZh = questions[currentQ].zh;
-  allBtns.forEach(b => {
-    if (b.textContent === correctZh) b.classList.add('correct');
-  });
-
-  if (correct) {
-    score++;
-    document.getElementById('feedback').innerHTML = '<span style="color:#4caf50;">答對了！</span>';
-  } else {
-    document.getElementById('feedback').innerHTML = '<span style="color:#f44336;">答錯了！答案是：' + correctZh + '</span>';
+  function showScreen(id) {
+    loginScreen.classList.remove('active');
+    gameScreen.classList.remove('active');
+    resultScreen.classList.remove('active');
+    document.getElementById(id).classList.add('active');
   }
 
-  setTimeout(() => {
-    currentQ++;
-    renderQuestion();
-  }, correct ? 800 : 1500);
-}
-
-async function endGame() {
-  showScreen('resultScreen');
-  document.getElementById('finalScore').textContent = score + ' / ' + TOTAL_Q;
-
-  const m = String(Math.floor(timerSeconds / 60)).padStart(2, '0');
-  const s = String(timerSeconds % 60).padStart(2, '0');
-  document.getElementById('finalTime').textContent = m + ' 分 ' + s + ' 秒';
-
-  document.getElementById('saveStatus').style.display = 'block';
-  document.getElementById('resultError').textContent = '';
-
-  const { error } = await supabase.from('game_results').insert({
-    seat_number: seatNumber,
-    score: score,
-    game_time: timerSeconds,
-    total_questions: TOTAL_Q,
-    correct_count: score
-  });
-
-  document.getElementById('saveStatus').style.display = 'none';
-
-  if (error) {
-    document.getElementById('resultError').textContent = '儲存失敗：' + error.message;
-  } else {
-    loadLeaderboard();
-  }
-}
-
-async function loadLeaderboard() {
-  const { data, error } = await supabase
-    .from('game_results')
-    .select('seat_number, score, game_time')
-    .order('score', { ascending: false })
-    .order('game_time', { ascending: true })
-    .limit(10);
-
-  if (error || !data || data.length === 0) return;
-
-  document.getElementById('leaderboardSection').style.display = 'block';
-  const tbody = document.getElementById('leaderboardBody');
-  tbody.innerHTML = '';
-  data.forEach((row, i) => {
-    const m = String(Math.floor(row.game_time / 60)).padStart(2, '0');
-    const sec = String(row.game_time % 60).padStart(2, '0');
-    const tr = document.createElement('tr');
-    if (row.seat_number === seatNumber && row.score === score && row.game_time === timerSeconds) {
-      tr.style.background = '#f0f3ff';
+  function shuffle(arr) {
+    var a = arr.slice();
+    for (var i = a.length - 1; i > 0; i--) {
+      var j = Math.floor(Math.random() * (i + 1));
+      var tmp = a[i]; a[i] = a[j]; a[j] = tmp;
     }
-    tr.innerHTML = 
-      '<td class="rank">' + (i + 1) + '</td>' +
-      '<td>' + row.seat_number + '</td>' +
-      '<td>' + row.score + ' / ' + TOTAL_Q + '</td>' +
-      '<td>' + m + ':' + sec + '</td>';
-    tbody.appendChild(tr);
-  });
-}
+    return a;
+  }
+
+  function startGame() {
+    var input = document.getElementById('seatInput');
+    var val = parseInt(input.value);
+    if (!val || val < 1 || val > 50) {
+      document.getElementById('loginError').textContent = '請輸入 1~50 的座號';
+      return;
+    }
+    seatNumber = val;
+    document.getElementById('loginError').textContent = '';
+
+    questions = shuffle(VOCAB).slice(0, TOTAL_Q);
+    currentQ = 0;
+    score = 0;
+    timerSeconds = 0;
+    showScreen('gameScreen');
+
+    document.getElementById('timer').textContent = '00:00';
+    timerInterval = setInterval(function() {
+      timerSeconds++;
+      var m = ('0' + Math.floor(timerSeconds / 60)).slice(-2);
+      var s = ('0' + (timerSeconds % 60)).slice(-2);
+      document.getElementById('timer').textContent = m + ':' + s;
+    }, 1000);
+
+    renderQuestion();
+  }
+
+  function renderQuestion() {
+    if (currentQ >= TOTAL_Q) {
+      clearInterval(timerInterval);
+      endGame();
+      return;
+    }
+    document.getElementById('progress').textContent =
+      '第 ' + (currentQ + 1) + ' 題 / 共 ' + TOTAL_Q + ' 題';
+    document.getElementById('feedback').textContent = '';
+
+    var q = questions[currentQ];
+    document.getElementById('wordDisplay').textContent = q.en;
+
+    var wrongOptions = shuffle(VOCAB.filter(function(v) { return v.zh !== q.zh; })).slice(0, 3);
+    var options = shuffle([q].concat(wrongOptions));
+
+    var container = document.getElementById('optionsContainer');
+    container.innerHTML = '';
+    options.forEach(function(opt) {
+      var btn = document.createElement('button');
+      btn.className = 'option';
+      btn.textContent = opt.zh;
+      btn.onclick = function() { checkAnswer(opt.zh === q.zh, container); };
+      container.appendChild(btn);
+    });
+  }
+
+  function checkAnswer(correct, parent) {
+    var allBtns = parent.querySelectorAll('.option');
+    allBtns.forEach(function(b) { b.disabled = true; });
+
+    var correctZh = questions[currentQ].zh;
+    allBtns.forEach(function(b) {
+      if (b.textContent === correctZh) b.classList.add('correct');
+    });
+
+    if (correct) {
+      score++;
+      document.getElementById('feedback').innerHTML = '<span style="color:#4caf50;">答對了！</span>';
+    } else {
+      document.getElementById('feedback').innerHTML =
+        '<span style="color:#f44336;">答錯了！答案是：' + correctZh + '</span>';
+    }
+
+    setTimeout(function() {
+      currentQ++;
+      renderQuestion();
+    }, correct ? 800 : 1500);
+  }
+
+  function pad(n) { return ('0' + n).slice(-2); }
+
+  function endGame() {
+    showScreen('resultScreen');
+    document.getElementById('finalScore').textContent = score + ' / ' + TOTAL_Q;
+    document.getElementById('finalTime').textContent =
+      pad(Math.floor(timerSeconds / 60)) + ' 分 ' + pad(timerSeconds % 60) + ' 秒';
+
+    document.getElementById('saveStatus').style.display = 'block';
+    document.getElementById('resultError').textContent = '';
+
+    fetch(API_URL, {
+      method: 'POST',
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': 'Bearer ' + ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify({
+        seat_number: seatNumber,
+        score: score,
+        game_time: timerSeconds,
+        total_questions: TOTAL_Q,
+        correct_count: score
+      })
+    }).then(function(res) {
+      document.getElementById('saveStatus').style.display = 'none';
+      if (res.ok) {
+        loadLeaderboard();
+      } else {
+        res.text().then(function(t) {
+          document.getElementById('resultError').textContent = '儲存失敗：' + t;
+        });
+      }
+    }).catch(function(e) {
+      document.getElementById('saveStatus').style.display = 'none';
+      document.getElementById('resultError').textContent = '連線失敗：' + e.message;
+    });
+  }
+
+  function loadLeaderboard() {
+    fetch(API_URL + '?select=seat_number,score,game_time&order=score.desc&order=game_time.asc&limit=10', {
+      headers: {
+        'apikey': ANON_KEY,
+        'Authorization': 'Bearer ' + ANON_KEY
+      }
+    }).then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (!data || data.length === 0) return;
+        document.getElementById('leaderboardSection').style.display = 'block';
+        var tbody = document.getElementById('leaderboardBody');
+        tbody.innerHTML = '';
+        data.forEach(function(row, i) {
+          var tr = document.createElement('tr');
+          if (row.seat_number === seatNumber && row.score === score && row.game_time === timerSeconds) {
+            tr.style.background = '#f0f3ff';
+          }
+          tr.innerHTML =
+            '<td class="rank">' + (i + 1) + '</td>' +
+            '<td>' + row.seat_number + '</td>' +
+            '<td>' + row.score + ' / ' + TOTAL_Q + '</td>' +
+            '<td>' + pad(Math.floor(row.game_time / 60)) + ':' + pad(row.game_time % 60) + '</td>';
+          tbody.appendChild(tr);
+        });
+      }).catch(function(e) {
+        document.getElementById('resultError').textContent = '讀取排行榜失敗：' + e.message;
+      });
+  }
+
+  document.getElementById('startBtn').addEventListener('click', startGame);
+  document.getElementById('replayBtn').addEventListener('click', function() { location.reload(); });
+})();
 </script>
 </body>
 </html>
