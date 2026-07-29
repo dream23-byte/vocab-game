@@ -19,7 +19,7 @@
     background: white;
     border-radius: 20px;
     padding: 30px;
-    max-width: 500px;
+    max-width: 520px;
     width: 100%;
     box-shadow: 0 20px 60px rgba(0,0,0,0.3);
   }
@@ -28,12 +28,13 @@
   .screen { display: none; }
   .screen.active { display: block; }
   label { display: block; margin-bottom: 6px; color: #555; font-weight: 600; }
-  input[type="number"] {
+  input[type="number"], input[type="text"] {
     width: 100%; padding: 12px; border: 2px solid #e0e0e0;
-    border-radius: 10px; font-size: 18px; text-align: center;
+    border-radius: 10px; font-size: 16px; text-align: center;
     transition: border-color 0.3s;
   }
-  input[type="number"]:focus { border-color: #667eea; outline: none; }
+  input[type="number"]:focus, input[type="text"]:focus { border-color: #667eea; outline: none; }
+  input:disabled { background: #f5f5f5; }
   .btn {
     display: block; width: 100%; padding: 14px; border: none; border-radius: 12px;
     font-size: 18px; font-weight: 700; cursor: pointer; margin-top: 16px;
@@ -42,6 +43,7 @@
   .btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: white; }
   .btn-primary:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.4); }
   .btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  .btn-sm { padding: 8px 16px; font-size: 14px; width: auto; display: inline-block; margin: 5px; }
   .progress { text-align: center; color: #999; font-size: 14px; margin-bottom: 10px; }
   .timer { text-align: center; font-size: 20px; color: #667eea; font-weight: 700; margin-bottom: 15px; }
   .word-card {
@@ -66,7 +68,7 @@
   .result-box .big { font-size: 48px; font-weight: 800; color: #667eea; }
   .result-box .label { color: #777; font-size: 14px; }
   .leaderboard { margin-top: 15px; }
-  .leaderboard h3 { text-align: center; color: #4a154b; margin-bottom: 10px; }
+  .leaderboard h3, .ai-hints h3, .wrong-review h3, .wrong-summary h3 { text-align: center; color: #4a154b; margin-bottom: 10px; }
   .leaderboard table { width: 100%; border-collapse: collapse; }
   .leaderboard th, .leaderboard td { padding: 10px; text-align: center; border-bottom: 1px solid #eee; }
   .leaderboard th { background: #f8f9ff; color: #667eea; font-size: 14px; }
@@ -74,8 +76,11 @@
   .leaderboard .rank { font-weight: 700; color: #764ba2; }
   .error { color: #f44336; text-align: center; margin-top: 10px; font-size: 14px; }
   .loading { text-align: center; color: #999; padding: 20px; }
-  .ai-hints { margin-top: 15px; }
-  .ai-hints h3 { text-align: center; color: #4a154b; margin-bottom: 10px; }
+  .field-group { margin-bottom: 12px; }
+  .radio-group { display: flex; gap: 10px; margin-bottom: 10px; }
+  .radio-group label { display: flex; align-items: center; gap: 6px; font-weight: 400; cursor: pointer; color: #555; }
+  .radio-group label input { width: auto; }
+
   .hint-card {
     background: #f0fff4; border: 1px solid #b2dfdb; border-radius: 12px;
     padding: 14px; margin-bottom: 10px;
@@ -84,17 +89,42 @@
   .hint-card .sentence { color: #555; margin: 6px 0; font-size: 14px; }
   .hint-card .sentence-cn { color: #888; font-size: 13px; }
   .hint-card .tip { color: #6a1b9a; font-size: 14px; margin-top: 6px; padding: 6px 10px; background: #f3e5f5; border-radius: 8px; display: inline-block; }
+
+  .wrong-card {
+    background: #fff3e0; border: 1px solid #ffe0b2; border-radius: 10px;
+    padding: 10px 14px; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;
+  }
+  .wrong-card .word { font-size: 17px; font-weight: 700; color: #e65100; }
+  .wrong-card .zh { color: #888; font-size: 14px; }
+  .wrong-card .date { color: #bbb; font-size: 12px; }
+
+  .topic-section { background: #f8f9ff; border-radius: 12px; padding: 14px; margin-top: 8px; }
+  .topic-section.hidden { display: none; }
+  .badge { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 10px; background: #e8eaf6; color: #3949ab; }
 </style>
 </head>
 <body>
 <div class="container">
   <h1>英文單字配對</h1>
-  <p class="subtitle">看英文，選中文意思</p>
+  <p class="subtitle" id="subtitle">看英文，選中文意思</p>
 
   <div id="loginScreen" class="screen active">
-    <label for="seatInput">請輸入你的班級座號</label>
-    <input type="number" id="seatInput" min="1" max="50" placeholder="例如：15">
+    <div class="field-group">
+      <label for="seatInput">請輸入你的班級座號</label>
+      <input type="number" id="seatInput" min="1" max="50" placeholder="例如：15">
+    </div>
+    <div class="field-group">
+      <label>單字來源</label>
+      <div class="radio-group">
+        <label><input type="radio" name="vocabSource" value="default" checked onclick="toggleTopic()"> 預設單字</label>
+        <label><input type="radio" name="vocabSource" value="ai" onclick="toggleTopic()"> AI 自訂主題</label>
+      </div>
+      <div class="topic-section hidden" id="topicSection">
+        <input type="text" id="topicInput" placeholder="請輸入主題（例如：動物、水果、天氣）">
+      </div>
+    </div>
     <button class="btn btn-primary" id="startBtn">開始遊戲</button>
+    <div class="loading" id="generateStatus" style="display:none;">AI 正在生成單字中...</div>
     <p class="error" id="loginError"></p>
   </div>
 
@@ -123,9 +153,17 @@
         <tbody id="leaderboardBody"></tbody>
       </table>
     </div>
+    <div class="wrong-summary" id="wrongSummary" style="display:none;">
+      <h3>本局錯題</h3>
+      <div id="wrongSummaryContainer"></div>
+    </div>
     <div class="ai-hints" id="aiHintsSection" style="display:none;">
       <h3>AI 幫你記</h3>
       <div id="aiHintsContainer"></div>
+    </div>
+    <div class="wrong-review" id="wrongReviewSection" style="display:none;">
+      <h3>錯題庫 <span class="badge" id="wrongCountBadge">0 題</span></h3>
+      <div id="wrongReviewContainer"></div>
     </div>
     <button class="btn btn-primary" id="replayBtn">再玩一次</button>
     <p class="error" id="resultError"></p>
@@ -134,11 +172,14 @@
 
 <script>
 (function() {
-  var API_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co/rest/v1/game_results';
-  var FUNCTIONS_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co/functions/v1/generate-hints';
+  var SUPABASE_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co';
+  var API_URL = SUPABASE_URL + '/rest/v1/game_results';
+  var WRONG_API_URL = SUPABASE_URL + '/rest/v1/wrong_answers';
+  var FUNCTIONS_URL = SUPABASE_URL + '/functions/v1/generate-hints';
+  var VOCAB_FN_URL = SUPABASE_URL + '/functions/v1/generate-vocab';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaHdqdWp4cXZvbnlqdW16Z2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTQwNTMsImV4cCI6MjEwMDc5MDA1M30._pOtF2T9FQIT0z0nFNUZq6kyGH9-2hPvORZgmujBOWc';
 
-  var VOCAB = [
+  var DEFAULT_VOCAB = [
     { en: 'apple', zh: '蘋果' }, { en: 'book', zh: '書' },
     { en: 'cat', zh: '貓' }, { en: 'dog', zh: '狗' },
     { en: 'elephant', zh: '大象' }, { en: 'flower', zh: '花' },
@@ -158,21 +199,22 @@
 
   var TOTAL_Q = 10;
   var seatNumber = 0;
+  var vocabPool = [];
   var questions = [];
   var currentQ = 0;
   var score = 0;
   var timerSeconds = 0;
   var timerInterval = null;
   var wrongWords = [];
+  var currentTopic = '';
 
-  var loginScreen = document.getElementById('loginScreen');
-  var gameScreen = document.getElementById('gameScreen');
-  var resultScreen = document.getElementById('resultScreen');
+  function toggleTopic() {
+    var ai = document.querySelector('input[name="vocabSource"]:checked').value === 'ai';
+    document.getElementById('topicSection').classList.toggle('hidden', !ai);
+  }
 
   function showScreen(id) {
-    loginScreen.classList.remove('active');
-    gameScreen.classList.remove('active');
-    resultScreen.classList.remove('active');
+    document.querySelectorAll('.screen').forEach(function(s) { s.classList.remove('active'); });
     document.getElementById(id).classList.add('active');
   }
 
@@ -185,17 +227,59 @@
     return a;
   }
 
+  function generateVocab(topic) {
+    return fetch(VOCAB_FN_URL, {
+      method: 'POST',
+      headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ topic: topic })
+    }).then(function(r) { return r.json(); }).then(function(d) {
+      return (d.words && d.words.length >= 5) ? d.words : null;
+    });
+  }
+
   function startGame() {
-    var input = document.getElementById('seatInput');
-    var val = parseInt(input.value);
-    if (!val || val < 1 || val > 50) {
+    var seatVal = parseInt(document.getElementById('seatInput').value);
+    if (!seatVal || seatVal < 1 || seatVal > 50) {
       document.getElementById('loginError').textContent = '請輸入 1~50 的座號';
       return;
     }
-    seatNumber = val;
+    seatNumber = seatVal;
     document.getElementById('loginError').textContent = '';
 
-    questions = shuffle(VOCAB).slice(0, TOTAL_Q);
+    var source = document.querySelector('input[name="vocabSource"]:checked').value;
+    var btn = document.getElementById('startBtn');
+    btn.disabled = true;
+    btn.textContent = '準備中...';
+
+    if (source === 'ai') {
+      currentTopic = document.getElementById('topicInput').value.trim();
+      if (!currentTopic) {
+        document.getElementById('loginError').textContent = '請輸入主題名稱';
+        btn.disabled = false;
+        btn.textContent = '開始遊戲';
+        return;
+      }
+      document.getElementById('generateStatus').style.display = 'block';
+      generateVocab(currentTopic).then(function(words) {
+        document.getElementById('generateStatus').style.display = 'none';
+        vocabPool = words || shuffle(DEFAULT_VOCAB);
+        if (!words) {
+          document.getElementById('subtitle').textContent = 'AI 生成失敗，改用預設單字';
+        } else {
+          document.getElementById('subtitle').textContent = '主題：' + currentTopic;
+        }
+        beginGame();
+      });
+    } else {
+      currentTopic = '';
+      document.getElementById('subtitle').textContent = '看英文，選中文意思';
+      vocabPool = shuffle(DEFAULT_VOCAB);
+      beginGame();
+    }
+  }
+
+  function beginGame() {
+    questions = shuffle(vocabPool).slice(0, TOTAL_Q);
     currentQ = 0;
     score = 0;
     timerSeconds = 0;
@@ -205,9 +289,8 @@
     document.getElementById('timer').textContent = '00:00';
     timerInterval = setInterval(function() {
       timerSeconds++;
-      var m = ('0' + Math.floor(timerSeconds / 60)).slice(-2);
-      var s = ('0' + (timerSeconds % 60)).slice(-2);
-      document.getElementById('timer').textContent = m + ':' + s;
+      document.getElementById('timer').textContent =
+        ('0' + Math.floor(timerSeconds / 60)).slice(-2) + ':' + ('0' + (timerSeconds % 60)).slice(-2);
     }, 1000);
 
     renderQuestion();
@@ -219,14 +302,13 @@
       endGame();
       return;
     }
-    document.getElementById('progress').textContent =
-      '第 ' + (currentQ + 1) + ' 題 / 共 ' + TOTAL_Q + ' 題';
+    document.getElementById('progress').textContent = '第 ' + (currentQ + 1) + ' 題 / 共 ' + TOTAL_Q + ' 題';
     document.getElementById('feedback').textContent = '';
 
     var q = questions[currentQ];
     document.getElementById('wordDisplay').textContent = q.en;
 
-    var wrongOptions = shuffle(VOCAB.filter(function(v) { return v.zh !== q.zh; })).slice(0, 3);
+    var wrongOptions = shuffle(vocabPool.filter(function(v) { return v.zh !== q.zh; })).slice(0, 3);
     var options = shuffle([q].concat(wrongOptions));
 
     var container = document.getElementById('optionsContainer');
@@ -252,21 +334,22 @@
     if (correct) {
       score++;
       document.getElementById('feedback').innerHTML = '<span style="color:#4caf50;">答對了！</span>';
+      setTimeout(function() { currentQ++; renderQuestion(); }, 800);
     } else {
-      wrongWords.push(questions[currentQ].en);
+      wrongWords.push({ en: questions[currentQ].en, zh: questions[currentQ].zh });
       document.getElementById('feedback').innerHTML =
         '<span style="color:#f44336;">答錯了！答案是：' + correctZh + '</span>';
+      setTimeout(function() { currentQ++; renderQuestion(); }, 1500);
     }
-
-    setTimeout(function() {
-      currentQ++;
-      renderQuestion();
-    }, correct ? 800 : 1500);
   }
 
   function pad(n) { return ('0' + n).slice(-2); }
 
   function endGame() {
+    var btn = document.getElementById('startBtn');
+    btn.disabled = false;
+    btn.textContent = '開始遊戲';
+
     showScreen('resultScreen');
     document.getElementById('finalScore').textContent = score + ' / ' + TOTAL_Q;
     document.getElementById('finalTime').textContent =
@@ -294,6 +377,7 @@
       document.getElementById('saveStatus').style.display = 'none';
       if (res.ok) {
         loadLeaderboard();
+        saveWrongAnswers();
         if (wrongWords.length > 0) loadAIHints();
       } else {
         res.text().then(function(t) {
@@ -306,13 +390,59 @@
     });
   }
 
-  function loadLeaderboard() {
-    fetch(API_URL + '?select=seat_number,score,game_time&order=score.desc&order=game_time.asc&limit=10', {
+  function saveWrongAnswers() {
+    if (wrongWords.length === 0) return;
+    var rows = wrongWords.map(function(w) {
+      return { seat_number: seatNumber, word_en: w.en, word_zh: w.zh };
+    });
+    var payload = rows.length === 1 ? rows[0] : rows;
+
+    fetch(WRONG_API_URL, {
+      method: 'POST',
       headers: {
         'apikey': ANON_KEY,
-        'Authorization': 'Bearer ' + ANON_KEY
-      }
-    }).then(function(res) { return res.json(); })
+        'Authorization': 'Bearer ' + ANON_KEY,
+        'Content-Type': 'application/json',
+        'Prefer': 'return=minimal'
+      },
+      body: JSON.stringify(payload)
+    }).then(function() { loadWrongReview(); }).catch(function() {});
+  }
+
+  function loadWrongReview() {
+    fetch(WRONG_API_URL + '?seat_number=eq.' + seatNumber + '&select=word_en,word_zh,created_at&order=created_at.desc&limit=30', {
+      headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
+    }).then(function(r) { return r.json(); })
+      .then(function(data) {
+        if (!data || data.length === 0) return;
+        document.getElementById('wrongReviewSection').style.display = 'block';
+        document.getElementById('wrongCountBadge').textContent = data.length + ' 題';
+        var container = document.getElementById('wrongReviewContainer');
+        container.innerHTML = '';
+        var seen = {};
+        var count = 0;
+        data.forEach(function(row) {
+          if (count >= 10) return;
+          var key = row.word_en;
+          if (seen[key]) return;
+          seen[key] = true;
+          count++;
+          var d = new Date(row.created_at);
+          var dateStr = d.getFullYear() + '/' + pad(d.getMonth() + 1) + '/' + pad(d.getDate());
+          var card = document.createElement('div');
+          card.className = 'wrong-card';
+          card.innerHTML =
+            '<div><span class="word">' + row.word_en + '</span> <span class="zh">' + row.word_zh + '</span></div>' +
+            '<span class="date">' + dateStr + '</span>';
+          container.appendChild(card);
+        });
+      }).catch(function() {});
+  }
+
+  function loadLeaderboard() {
+    fetch(API_URL + '?select=seat_number,score,game_time&order=score.desc&order=game_time.asc&limit=10', {
+      headers: { 'apikey': ANON_KEY, 'Authorization': 'Bearer ' + ANON_KEY }
+    }).then(function(r) { return r.json(); })
       .then(function(data) {
         if (!data || data.length === 0) return;
         document.getElementById('leaderboardSection').style.display = 'block';
@@ -336,19 +466,25 @@
   }
 
   function loadAIHints() {
+    var words = wrongWords.map(function(w) { return w.en; });
     fetch(FUNCTIONS_URL, {
       method: 'POST',
-      headers: {
-        'Authorization': 'Bearer ' + ANON_KEY,
-        'Content-Type': 'application/json'
-      },
-      body: JSON.stringify({ words: wrongWords })
-    }).then(function(res) { return res.json(); })
+      headers: { 'Authorization': 'Bearer ' + ANON_KEY, 'Content-Type': 'application/json' },
+      body: JSON.stringify({ words: words })
+    }).then(function(r) { return r.json(); })
       .then(function(data) {
-        if (data.hints && data.hints.length > 0) {
-          displayAIHints(data.hints);
-        }
+        if (data.hints && data.hints.length > 0) displayAIHints(data.hints);
       }).catch(function() {});
+
+    var summaryContainer = document.getElementById('wrongSummaryContainer');
+    summaryContainer.innerHTML = '';
+    wrongWords.forEach(function(w) {
+      var card = document.createElement('div');
+      card.className = 'wrong-card';
+      card.innerHTML = '<div><span class="word">' + w.en + '</span> <span class="zh">' + w.zh + '</span></div>';
+      summaryContainer.appendChild(card);
+    });
+    document.getElementById('wrongSummary').style.display = 'block';
   }
 
   function displayAIHints(hints) {
@@ -362,11 +498,12 @@
         '<div class="word">' + h.word + '</div>' +
         '<div class="sentence">' + (h.sentence || '') + '</div>' +
         '<div class="sentence-cn">' + (h.sentence_cn || '') + '</div>' +
-        '<div class="tip">' + h.tip + '</div>';
+        '<div class="tip">' + (h.tip || '') + '</div>';
       container.appendChild(card);
     });
   }
 
+  window.toggleTopic = toggleTopic;
   document.getElementById('startBtn').addEventListener('click', startGame);
   document.getElementById('replayBtn').addEventListener('click', function() { location.reload(); });
 })();
