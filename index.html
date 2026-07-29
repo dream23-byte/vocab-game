@@ -74,6 +74,16 @@
   .leaderboard .rank { font-weight: 700; color: #764ba2; }
   .error { color: #f44336; text-align: center; margin-top: 10px; font-size: 14px; }
   .loading { text-align: center; color: #999; padding: 20px; }
+  .ai-hints { margin-top: 15px; }
+  .ai-hints h3 { text-align: center; color: #4a154b; margin-bottom: 10px; }
+  .hint-card {
+    background: #f0fff4; border: 1px solid #b2dfdb; border-radius: 12px;
+    padding: 14px; margin-bottom: 10px;
+  }
+  .hint-card .word { font-size: 20px; font-weight: 800; color: #2e7d32; }
+  .hint-card .sentence { color: #555; margin: 6px 0; font-size: 14px; }
+  .hint-card .sentence-cn { color: #888; font-size: 13px; }
+  .hint-card .tip { color: #6a1b9a; font-size: 14px; margin-top: 6px; padding: 6px 10px; background: #f3e5f5; border-radius: 8px; display: inline-block; }
 </style>
 </head>
 <body>
@@ -113,6 +123,10 @@
         <tbody id="leaderboardBody"></tbody>
       </table>
     </div>
+    <div class="ai-hints" id="aiHintsSection" style="display:none;">
+      <h3>AI 幫你記</h3>
+      <div id="aiHintsContainer"></div>
+    </div>
     <button class="btn btn-primary" id="replayBtn">再玩一次</button>
     <p class="error" id="resultError"></p>
   </div>
@@ -121,6 +135,7 @@
 <script>
 (function() {
   var API_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co/rest/v1/game_results';
+  var FUNCTIONS_URL = 'https://ushwjujxqvonyjumzgkp.supabase.co/functions/v1/generate-hints';
   var ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVzaHdqdWp4cXZvbnlqdW16Z2twIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODUyMTQwNTMsImV4cCI6MjEwMDc5MDA1M30._pOtF2T9FQIT0z0nFNUZq6kyGH9-2hPvORZgmujBOWc';
 
   var VOCAB = [
@@ -148,6 +163,7 @@
   var score = 0;
   var timerSeconds = 0;
   var timerInterval = null;
+  var wrongWords = [];
 
   var loginScreen = document.getElementById('loginScreen');
   var gameScreen = document.getElementById('gameScreen');
@@ -183,6 +199,7 @@
     currentQ = 0;
     score = 0;
     timerSeconds = 0;
+    wrongWords = [];
     showScreen('gameScreen');
 
     document.getElementById('timer').textContent = '00:00';
@@ -236,6 +253,7 @@
       score++;
       document.getElementById('feedback').innerHTML = '<span style="color:#4caf50;">答對了！</span>';
     } else {
+      wrongWords.push(questions[currentQ].en);
       document.getElementById('feedback').innerHTML =
         '<span style="color:#f44336;">答錯了！答案是：' + correctZh + '</span>';
     }
@@ -276,6 +294,7 @@
       document.getElementById('saveStatus').style.display = 'none';
       if (res.ok) {
         loadLeaderboard();
+        if (wrongWords.length > 0) loadAIHints();
       } else {
         res.text().then(function(t) {
           document.getElementById('resultError').textContent = '儲存失敗：' + t;
@@ -314,6 +333,38 @@
       }).catch(function(e) {
         document.getElementById('resultError').textContent = '讀取排行榜失敗：' + e.message;
       });
+  }
+
+  function loadAIHints() {
+    fetch(FUNCTIONS_URL, {
+      method: 'POST',
+      headers: {
+        'Authorization': 'Bearer ' + ANON_KEY,
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ words: wrongWords })
+    }).then(function(res) { return res.json(); })
+      .then(function(data) {
+        if (data.hints && data.hints.length > 0) {
+          displayAIHints(data.hints);
+        }
+      }).catch(function() {});
+  }
+
+  function displayAIHints(hints) {
+    document.getElementById('aiHintsSection').style.display = 'block';
+    var container = document.getElementById('aiHintsContainer');
+    container.innerHTML = '';
+    hints.forEach(function(h) {
+      var card = document.createElement('div');
+      card.className = 'hint-card';
+      card.innerHTML =
+        '<div class="word">' + h.word + '</div>' +
+        '<div class="sentence">' + (h.sentence || '') + '</div>' +
+        '<div class="sentence-cn">' + (h.sentence_cn || '') + '</div>' +
+        '<div class="tip">' + h.tip + '</div>';
+      container.appendChild(card);
+    });
   }
 
   document.getElementById('startBtn').addEventListener('click', startGame);
